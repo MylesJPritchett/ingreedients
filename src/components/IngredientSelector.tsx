@@ -13,12 +13,21 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
   const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState<string>("");
   const [recipeSearch, setRecipeSearch] = useState<string>("");
+  const [selectedRecipes, setSelectedRecipes] = useState<Recipe[]>([]); // State for selected recipes
 
   const toggleIngredient = (ingredientId: number) => {
     setSelectedIngredients((prevSelected) =>
       prevSelected.includes(ingredientId)
         ? prevSelected.filter((i) => i !== ingredientId)
         : [...prevSelected, ingredientId]
+    );
+  };
+
+  const toggleRecipe = (recipe: Recipe) => {
+    setSelectedRecipes((prevSelected) =>
+      prevSelected.some((r) => r.id === recipe.id)
+        ? prevSelected.filter((r) => r.id !== recipe.id)
+        : [...prevSelected, recipe]
     );
   };
 
@@ -52,10 +61,8 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
       "2 more needed": 4,
       "3 more needed": 5,
       "4 more needed": 6,
-      // Add more as necessary depending on the max number of ingredients
       "5 more needed": 7,
       "6 more needed": 8,
-      // Default for other cases
       "7 more needed": 9,
       "8 more needed": 10,
       "9 more needed": 11,
@@ -73,6 +80,18 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     return 0; // Maintain order if they are the same
   };
 
+  // Combine ingredients from all selected recipes
+  const selectedRecipeIngredients = selectedRecipes.flatMap((recipe) =>
+    recipe.recipeIngredients?.map((ri) => ri.ingredientId) || []
+  );
+
+  const uniqueRecipeIngredients = Array.from(new Set(selectedRecipeIngredients));
+
+  // Filter ingredients based on selected recipes (if any)
+  const filteredIngredients = selectedRecipes.length
+    ? ingredients.filter((ingredient) => uniqueRecipeIngredients.includes(ingredient.id))
+    : ingredients;
+
   return (
     <div className="flex flex-row gap-8 w-full">
       {/* Left Column for Ingredients */}
@@ -85,7 +104,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
           className="mb-4 p-2 border rounded"
         />
         <ul className="flex flex-col gap-y-2">
-          {ingredients
+          {filteredIngredients
             .filter((ingredient) =>
               ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
             )
@@ -119,7 +138,12 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
             )
             .sort(sortRecipes) // Sort the recipes
             .map((recipe) => (
-              <li key={recipe.id} className="flex justify-between items-center">
+              <li
+                key={recipe.id}
+                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-200" : ""
+                  }`}
+                onClick={() => toggleRecipe(recipe)}
+              >
                 <span>{recipe.name}</span>
                 <span>{getRecipeStatus(recipe)}</span> {/* Show status here */}
               </li>
