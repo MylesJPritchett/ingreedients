@@ -1,10 +1,28 @@
 // app/api/import/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Adjust the import path based on your project structure
+import { prisma } from '@/lib/prisma';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 
-export async function POST(request: Request) {
+interface CSVIngredient {
+  direction: string;        // Direction for the ingredient
+  quantity: number;        // Quantity of the ingredient
+  unit?: string | null;    // Unit of the ingredient (optional)
+  ingredient: { name: string }; // Name of the ingredient
+  note?: string | null;    // Any additional notes (optional)
+}
+
+interface CSVData {
+  category: string; // Category of the recipe
+  name: string;     // Name of the recipe
+  ingredient_direction: string; // Direction for the ingredient
+  quantity: string; // Quantity of the ingredient
+  unit: string;     // Unit of the ingredient
+  ingredient: string; // Name of the ingredient
+  note: string;     // Any additional notes
+}
+
+export async function POST(request: Request): Promise<Response> {
   const formData = await request.formData();
   const file = formData.get('file') as File;
 
@@ -14,13 +32,12 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const stream = Readable.from(buffer);
-  const recipeMap = new Map<string, { category: string; ingredients: any[] }>(); // Track recipes and their ingredients
+  const recipeMap = new Map<string, { category: string; ingredients: CSVIngredient[] }>();
 
-  // Read the CSV file
   return new Promise((resolve) => {
     stream
       .pipe(csv())
-      .on('data', (data) => {
+      .on('data', (data: CSVData) => {
         const { category, name, ingredient_direction, quantity, unit, ingredient, note } = data;
 
         if (!recipeMap.has(name)) {
@@ -29,7 +46,7 @@ export async function POST(request: Request) {
 
         recipeMap.get(name)?.ingredients.push({
           direction: ingredient_direction,
-          quantity: parseFloat(quantity) || 0, // Default to 0 if invalid
+          quantity: parseFloat(quantity) || 0,
           unit,
           ingredient: { name: ingredient },
           note: note || 'NA',
@@ -53,7 +70,7 @@ export async function POST(request: Request) {
               category,
               name: recipe.name,
               ingredients: ingredients,
-              method: 'NA', // Default method
+              method: 'NA',
             };
           });
 
@@ -72,15 +89,13 @@ export async function POST(request: Request) {
 }
 
 // Helper function to parse ingredients
-async function parseIngredients(ingredients: any[]) {
+async function parseIngredients(ingredients: CSVIngredient[]) {
   const ingredientPromises = ingredients.map(async (item) => {
     const { ingredient, quantity, unit, note } = item;
 
-    // Default quantity to 0 if it's invalid or not provided
-    const parsedQuantity = parseFloat(quantity);
+    const parsedQuantity = quantity;
     const finalQuantity = isNaN(parsedQuantity) ? 0 : parsedQuantity;
 
-    // Create or find the ingredient
     const foundIngredient = await prisma.ingredient.upsert({
       where: { name: ingredient.name },
       update: {},
@@ -90,7 +105,7 @@ async function parseIngredients(ingredients: any[]) {
     return {
       ingredient: { connect: { id: foundIngredient.id } },
       amount: finalQuantity,
-      use: note || 'NA', // Set as per your requirement
+      use: note || 'NA',
     };
   });
 

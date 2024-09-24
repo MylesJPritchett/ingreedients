@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import IngredientSelector from "@/components/IngredientSelector"; // Import the client component
 import { Ingredient } from "@/models/ingredient";

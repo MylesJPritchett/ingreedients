@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent } from 'react';
 
 export default function CSVUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,7 +13,7 @@ export default function CSVUpload() {
     }
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) {
       setMessage('Please select a file to upload.');
@@ -43,13 +43,14 @@ export default function CSVUpload() {
       setMessage(`Error: ${text}`); // Show error message from server
     }
   };
+
   return (
     <div>
-      <form onSubmit={handleSubmit} >
+      <form onSubmit={handleSubmit}>
         <input type="file" onChange={handleFileChange} accept=".csv" required />
-        <button type="submit" > Import CSV </button>
+        <button type="submit">Import CSV</button>
       </form>
-      {message && <p>{message} </p>}
+      {message && <p>{message}</p>}
     </div>
   );
 }

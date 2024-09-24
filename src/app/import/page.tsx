@@ -1,6 +1,4 @@
-
 import Image from "next/image";
-import { prisma } from "@/lib/prisma";
 import CSVUpload from "@/components/CSVUpload";
 
 const Import = async () => {

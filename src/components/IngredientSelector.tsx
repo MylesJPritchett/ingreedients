@@ -1,7 +1,6 @@
 "use client";
 import { Recipe } from "@/models/recipe";
 import { Ingredient } from "@/models/ingredient";
-import { RecipeIngredient } from "@/models/recipeIngredient";
 import { useState } from "react";
 
 // Define props interface
@@ -46,7 +45,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
 
   // Custom sorting function
   const sortRecipes = (a: Recipe, b: Recipe) => {
-    const statusOrder = {
+    const statusOrder: { [key: string]: number } = {
       "✔️": 1, // Tick first
       "0 more needed": 2, // No more needed, meaning complete
       "1 more needed": 3, // Ascending order by number of missing ingredients
