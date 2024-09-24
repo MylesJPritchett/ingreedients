@@ -73,7 +73,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
       return statusOrder[statusA] - statusOrder[statusB];
     }
 
-    return 0;
+    return a.name.localeCompare(b.name);
   };
 
   const selectedRecipeIngredients = selectedRecipes.flatMap((recipe) =>
@@ -123,7 +123,14 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
       }
 
       // Sort unselected ingredients by immediate impact on completing recipes
-      return getIngredientImmediateImpact(b.id) - getIngredientImmediateImpact(a.id);
+      const impactComparison = getIngredientImmediateImpact(b.id) - getIngredientImmediateImpact(a.id);
+
+      if (impactComparison !== 0) {
+        return impactComparison;
+      }
+
+      // Fallback to alphabetical sorting if impact is equal
+      return a.name.localeCompare(b.name);
     });
 
   return (
