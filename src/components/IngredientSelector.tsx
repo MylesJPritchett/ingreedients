@@ -13,7 +13,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
   const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState<string>("");
   const [recipeSearch, setRecipeSearch] = useState<string>("");
-  const [selectedRecipes, setSelectedRecipes] = useState<Recipe[]>([]); // State for selected recipes
+  const [selectedRecipes, setSelectedRecipes] = useState<Recipe[]>([]);
 
   const toggleIngredient = (ingredientId: number) => {
     setSelectedIngredients((prevSelected) =>
@@ -31,7 +31,6 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     );
   };
 
-  // Function to determine the status of the recipe based on selected ingredients
   const getRecipeStatus = (recipe: Recipe) => {
     const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
     const allIngredientsSelected = recipeIngredientIds?.every((id) =>
@@ -39,25 +38,23 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     );
 
     if (allIngredientsSelected) {
-      return "✔️"; // Tick if all ingredients of the recipe are selected
+      return "✔️";
     } else {
       const missingIngredientsCount = ingredientsNeeded(recipe);
-      return `${missingIngredientsCount} more needed`; // Return how many more are needed
+      return `${missingIngredientsCount} more needed`;
     }
   };
 
-  // Function to determine the number of ingredients needed to complete the recipe
   const ingredientsNeeded = (recipe: Recipe) => {
     const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
     return recipeIngredientIds?.filter((id) => !selectedIngredients.includes(id)).length;
   };
 
-  // Custom sorting function
   const sortRecipes = (a: Recipe, b: Recipe) => {
     const statusOrder: { [key: string]: number } = {
-      "✔️": 1, // Tick first
-      "0 more needed": 2, // No more needed, meaning complete
-      "1 more needed": 3, // Ascending order by number of missing ingredients
+      "✔️": 1,
+      "0 more needed": 2,
+      "1 more needed": 3,
       "2 more needed": 4,
       "3 more needed": 5,
       "4 more needed": 6,
@@ -72,25 +69,62 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     const statusA = getRecipeStatus(a);
     const statusB = getRecipeStatus(b);
 
-    // Compare by status
     if (statusOrder[statusA] !== statusOrder[statusB]) {
       return statusOrder[statusA] - statusOrder[statusB];
     }
 
-    return 0; // Maintain order if they are the same
+    return 0;
   };
 
-  // Combine ingredients from all selected recipes
   const selectedRecipeIngredients = selectedRecipes.flatMap((recipe) =>
     recipe.recipeIngredients?.map((ri) => ri.ingredientId) || []
   );
 
   const uniqueRecipeIngredients = Array.from(new Set(selectedRecipeIngredients));
 
-  // Filter ingredients based on selected recipes (if any)
   const filteredIngredients = selectedRecipes.length
     ? ingredients.filter((ingredient) => uniqueRecipeIngredients.includes(ingredient.id))
     : ingredients;
+
+  // New function to calculate how many recipes an ingredient will complete immediately
+  const getIngredientImmediateImpact = (ingredientId: number) => {
+    let completesRecipesImmediately = 0;
+    let getsRecipesCloser = 0;
+
+    recipes.forEach((recipe) => {
+      const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
+      const missingIngredients = recipeIngredientIds?.filter((id) => !selectedIngredients.includes(id));
+
+      if (missingIngredients?.length === 1 && missingIngredients.includes(ingredientId)) {
+        // This ingredient will complete the recipe
+        completesRecipesImmediately++;
+      } else if (missingIngredients?.includes(ingredientId)) {
+        // This ingredient gets the recipe closer to being complete
+        getsRecipesCloser++;
+      }
+    });
+
+    // Higher weight for completing recipes, lower weight for getting closer
+    return completesRecipesImmediately * 1000 + getsRecipesCloser;
+  };
+
+  // Sort ingredients with selected ones always at the top, then by immediate impact
+  const sortedIngredients = filteredIngredients
+    .filter((ingredient) =>
+      ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aSelected = selectedIngredients.includes(a.id) ? 1 : 0;
+      const bSelected = selectedIngredients.includes(b.id) ? 1 : 0;
+
+      // Sort selected ingredients at the top
+      if (aSelected !== bSelected) {
+        return bSelected - aSelected;
+      }
+
+      // Sort unselected ingredients by immediate impact on completing recipes
+      return getIngredientImmediateImpact(b.id) - getIngredientImmediateImpact(a.id);
+    });
 
   return (
     <div className="flex flex-row gap-8 w-full">
@@ -104,12 +138,9 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
           className="mb-4 p-2 border rounded"
         />
         <ul className="flex flex-col gap-y-2">
-          {filteredIngredients
-            .filter((ingredient) =>
-              ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
-            )
-            .map((ingredient) => (
-              <li key={ingredient.id} className="flex items-center">
+          {sortedIngredients.map((ingredient) => (
+            <li key={ingredient.id} className="flex items-center">
+              <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={selectedIngredients.includes(ingredient.id)}
@@ -117,8 +148,9 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
                   className="mr-2"
                 />
                 {ingredient.name}
-              </li>
-            ))}
+              </label>
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -136,16 +168,15 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
             .filter((recipe) =>
               recipe.name.toLowerCase().includes(recipeSearch.toLowerCase())
             )
-            .sort(sortRecipes) // Sort the recipes
+            .sort(sortRecipes)
             .map((recipe) => (
               <li
                 key={recipe.id}
-                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-200" : ""
-                  }`}
+                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-400" : ""}`}
                 onClick={() => toggleRecipe(recipe)}
               >
                 <span>{recipe.name}</span>
-                <span>{getRecipeStatus(recipe)}</span> {/* Show status here */}
+                <span>{getRecipeStatus(recipe)}</span>
               </li>
             ))}
         </ul>
