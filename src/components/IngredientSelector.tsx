@@ -1,12 +1,11 @@
 "use client"; // Ensure this is a client component
 import { Ingredient, Recipe, RecipeIngredient } from "@prisma/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from 'next/link';
 
-// Define props interface
 interface IngredientSelectorProps {
-  ingredients: Ingredient[];
-  recipes: RecipeWithIngredients[]; // Ensure this is the extended type
+  // Example property
+  someProp?: string;
 }
 
 // Extended Recipe type to include RecipeIngredients
@@ -14,11 +13,39 @@ interface RecipeWithIngredients extends Recipe {
   recipeIngredients: (RecipeIngredient & { ingredient: Ingredient })[]; // Include the related ingredient
 }
 
-const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, recipes }) => {
+const IngredientSelector: React.FC<IngredientSelectorProps> = () => {
   const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState<string>("");
   const [recipeSearch, setRecipeSearch] = useState<string>("");
-  const [selectedRecipes, setSelectedRecipes] = useState<RecipeWithIngredients[]>([]); // Update to use extended type
+  const [selectedRecipes, setSelectedRecipes] = useState<RecipeWithIngredients[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [recipes, setRecipes] = useState<RecipeWithIngredients[]>([]); // Ensure this is initialized as an array
+
+  // Fetch ingredients and recipes when the component mounts
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      const response = await fetch('/api/fetch-ingredients'); // Call your API route
+      const data = await response.json();
+      setIngredients(data);
+    };
+
+    const fetchRecipes = async () => {
+      const response = await fetch('/api/fetch-recipes'); // Call your API route
+      const data = await response.json();
+
+      // Ensure the fetched data is in the expected format (array)
+      if (Array.isArray(data)) {
+        setRecipes(data);
+      } else {
+        console.error("Expected an array of recipes, received:", data);
+      }
+    };
+
+    fetchIngredients();
+    fetchRecipes();
+
+
+  }, []);
 
   const toggleIngredient = (ingredientId: number) => {
     setSelectedIngredients((prevSelected) =>
@@ -169,7 +196,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
             .map((recipe) => (
               <li
                 key={recipe.id}
-                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-400" : ""}`} // Fixed className formatting
+                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-400" : ""}`}
                 onClick={() => toggleRecipe(recipe as RecipeWithIngredients)} // Cast recipe as RecipeWithIngredients
               >
                 <span>{recipe.name}</span>

@@ -14,8 +14,6 @@ export async function GET() {
     },
   });
 
-  console.log(ingredients);
-  console.log(recipes);
 
   return NextResponse.json({ ingredients, recipes });
 }
