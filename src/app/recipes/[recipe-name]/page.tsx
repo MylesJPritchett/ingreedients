@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from "@/lib/prisma";
-import { Recipe, RecipeIngredient } from '@prisma/client';
+import { Recipe } from '@prisma/client';
 
 // Function to fetch all recipes with ingredients
 async function fetchRecipes(): Promise<Recipe[]> {
