@@ -23,6 +23,7 @@ model Recipe {
   name        String   @unique
   description String?
   method      String?
+  category    String?
   recipeIngredients RecipeIngredient[]
 }
 

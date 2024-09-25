@@ -1,19 +1,24 @@
-"use client";
-import { Recipe } from "@/models/recipe";
-import { Ingredient } from "@/models/ingredient";
+"use client"; // Ensure this is a client component
+import { Ingredient, Recipe, RecipeIngredient } from "@prisma/client";
 import { useState } from "react";
+import Link from 'next/link';
 
 // Define props interface
 interface IngredientSelectorProps {
   ingredients: Ingredient[];
-  recipes: Recipe[];
+  recipes: RecipeWithIngredients[]; // Ensure this is the extended type
+}
+
+// Extended Recipe type to include RecipeIngredients
+interface RecipeWithIngredients extends Recipe {
+  recipeIngredients: (RecipeIngredient & { ingredient: Ingredient })[]; // Include the related ingredient
 }
 
 const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, recipes }) => {
   const [selectedIngredients, setSelectedIngredients] = useState<number[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState<string>("");
   const [recipeSearch, setRecipeSearch] = useState<string>("");
-  const [selectedRecipes, setSelectedRecipes] = useState<Recipe[]>([]);
+  const [selectedRecipes, setSelectedRecipes] = useState<RecipeWithIngredients[]>([]); // Update to use extended type
 
   const toggleIngredient = (ingredientId: number) => {
     setSelectedIngredients((prevSelected) =>
@@ -23,7 +28,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     );
   };
 
-  const toggleRecipe = (recipe: Recipe) => {
+  const toggleRecipe = (recipe: RecipeWithIngredients) => {
     setSelectedRecipes((prevSelected) =>
       prevSelected.some((r) => r.id === recipe.id)
         ? prevSelected.filter((r) => r.id !== recipe.id)
@@ -31,26 +36,24 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     );
   };
 
-  const getRecipeStatus = (recipe: Recipe) => {
-    const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
-    const allIngredientsSelected = recipeIngredientIds?.every((id) =>
-      selectedIngredients.includes(id)
-    );
+  const getRecipeStatus = (recipe: RecipeWithIngredients) => {
+    const recipeIngredientIds = recipe.recipeIngredients.map((ri) => ri.ingredientId);
+    const allIngredientsSelected = recipeIngredientIds.every((id) => selectedIngredients.includes(id));
 
     if (allIngredientsSelected) {
       return "✔️";
     } else {
       const missingIngredientsCount = ingredientsNeeded(recipe);
-      return `${missingIngredientsCount} more needed`;
+      return `${missingIngredientsCount} more needed`; // Fixed string interpolation
     }
   };
 
-  const ingredientsNeeded = (recipe: Recipe) => {
-    const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
-    return recipeIngredientIds?.filter((id) => !selectedIngredients.includes(id)).length;
+  const ingredientsNeeded = (recipe: RecipeWithIngredients) => {
+    const recipeIngredientIds = recipe.recipeIngredients.map((ri) => ri.ingredientId);
+    return recipeIngredientIds.filter((id) => !selectedIngredients.includes(id)).length;
   };
 
-  const sortRecipes = (a: Recipe, b: Recipe) => {
+  const sortRecipes = (a: RecipeWithIngredients, b: RecipeWithIngredients) => {
     const statusOrder: { [key: string]: number } = {
       "✔️": 1,
       "0 more needed": 2,
@@ -77,7 +80,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
   };
 
   const selectedRecipeIngredients = selectedRecipes.flatMap((recipe) =>
-    recipe.recipeIngredients?.map((ri) => ri.ingredientId) || []
+    recipe.recipeIngredients.map((ri) => ri.ingredientId)
   );
 
   const uniqueRecipeIngredients = Array.from(new Set(selectedRecipeIngredients));
@@ -86,7 +89,6 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
     ? ingredients.filter((ingredient) => uniqueRecipeIngredients.includes(ingredient.id))
     : ingredients;
 
-  // New function to calculate how many recipes an ingredient will complete immediately
   const getIngredientImmediateImpact = (ingredientId: number) => {
     let completesRecipesImmediately = 0;
     let getsRecipesCloser = 0;
@@ -96,46 +98,35 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
       const missingIngredients = recipeIngredientIds?.filter((id) => !selectedIngredients.includes(id));
 
       if (missingIngredients?.length === 1 && missingIngredients.includes(ingredientId)) {
-        // This ingredient will complete the recipe
         completesRecipesImmediately++;
       } else if (missingIngredients?.includes(ingredientId)) {
-        // This ingredient gets the recipe closer to being complete
         getsRecipesCloser++;
       }
     });
 
-    // Higher weight for completing recipes, lower weight for getting closer
     return completesRecipesImmediately * 1000 + getsRecipesCloser;
   };
 
-  // Sort ingredients with selected ones always at the top, then by immediate impact
   const sortedIngredients = filteredIngredients
-    .filter((ingredient) =>
-      ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase())
-    )
+    .filter((ingredient) => ingredient.name.toLowerCase().includes(ingredientSearch.toLowerCase()))
     .sort((a, b) => {
       const aSelected = selectedIngredients.includes(a.id) ? 1 : 0;
       const bSelected = selectedIngredients.includes(b.id) ? 1 : 0;
 
-      // Sort selected ingredients at the top
       if (aSelected !== bSelected) {
         return bSelected - aSelected;
       }
 
-      // Sort unselected ingredients by immediate impact on completing recipes
       const impactComparison = getIngredientImmediateImpact(b.id) - getIngredientImmediateImpact(a.id);
-
       if (impactComparison !== 0) {
         return impactComparison;
       }
 
-      // Fallback to alphabetical sorting if impact is equal
       return a.name.localeCompare(b.name);
     });
 
   return (
     <div className="flex flex-row gap-8 w-full">
-      {/* Left Column for Ingredients */}
       <div className="flex flex-col w-full sm:w-1/2">
         <input
           type="text"
@@ -161,7 +152,6 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
         </ul>
       </div>
 
-      {/* Right Column for Recipes */}
       <div className="flex flex-col w-full sm:w-1/2">
         <input
           type="text"
@@ -179,11 +169,17 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
             .map((recipe) => (
               <li
                 key={recipe.id}
-                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-400" : ""}`}
-                onClick={() => toggleRecipe(recipe)}
+                className={`flex justify-between items-center cursor-pointer ${selectedRecipes.some((r) => r.id === recipe.id) ? "bg-gray-400" : ""}`} // Fixed className formatting
+                onClick={() => toggleRecipe(recipe as RecipeWithIngredients)} // Cast recipe as RecipeWithIngredients
               >
                 <span>{recipe.name}</span>
-                <span>{getRecipeStatus(recipe)}</span>
+                <span>{getRecipeStatus(recipe as RecipeWithIngredients)}</span> {/* Cast recipe as RecipeWithIngredients */}
+                <Link
+                  href={`/recipes/${recipe.name.replace(/ /g, '-')}`} // Ensure proper slug formatting
+                  className="ml-4 bg-blue-500 text-white px-2 py-1 rounded inline-block"
+                >
+                  View
+                </Link>
               </li>
             ))}
         </ul>
