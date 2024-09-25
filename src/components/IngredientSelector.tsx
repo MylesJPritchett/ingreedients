@@ -1,6 +1,5 @@
 "use client";
-import { Recipe } from "@/models/recipe";
-import { Ingredient } from "@/models/ingredient";
+import { Ingredient, Recipe, RecipeIngredient } from "@prisma/client";
 import { useState } from "react";
 
 // Define props interface
@@ -32,7 +31,7 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
   };
 
   const getRecipeStatus = (recipe: Recipe) => {
-    const recipeIngredientIds = recipe.recipeIngredients?.map((ri) => ri.ingredientId);
+    const recipeIngredientIds = recipe.recipeIngredients?.map((ri: RecipeIngredient) => ri.ingredientId);
     const allIngredientsSelected = recipeIngredientIds?.every((id) =>
       selectedIngredients.includes(id)
     );
