@@ -79,6 +79,9 @@ export default async function RecipePage({ params }: { params: { 'recipe-name': 
   return (
     <section className="p-6">
       <h1 className="title font-semibold text-3xl tracking-tight mb-4">{recipe.name}</h1>
+      <h3 className="text-lg font-semibold text-neutral-500 dark:text-neutral-400 mb-4">
+        {recipe.category}
+      </h3>
       <div className="flex justify-between items-center mb-4 text-sm">
         <p className="text-sm text-neutral-600 dark:text-neutral-400">{recipe.description}</p>
       </div>

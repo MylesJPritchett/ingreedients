@@ -74,14 +74,14 @@ async function detectAndHandleCSV(stream: Readable): Promise<Response> {
 async function handleRecipeImport(recipes: CSVRecipe[]): Promise<Response> {
   try {
     const resultsPromises = recipes.map(async (recipe) => {
-      const { name, method } = recipe;
+      const { name, category, method } = recipe;
 
       await prisma.recipe.update({
         where: { name },
-        data: { method },
+        data: { category, method },
       });
 
-      return { name, method };
+      return { name, category, method };
     });
 
     const recipesResults = await Promise.all(resultsPromises);
@@ -160,7 +160,7 @@ async function parseIngredients(ingredients: CSVIngredient[]): Promise<RecipeIng
       // Return a RecipeIngredient object
       return {
         ingredient: { connect: { id: foundIngredient.id } }, // Connect to the found ingredient
-        amount: parsedQuantity, // Store as Float
+        amount: parsedQuantity || 0, // Store as Float
         use: note || 'NA', // Default to 'NA' if note is undefined
       };
     } catch (error) {
