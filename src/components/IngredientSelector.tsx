@@ -1,7 +1,7 @@
 "use client"; // Ensure this is a client component
 import { Ingredient, Recipe, RecipeIngredient } from "@prisma/client";
 import { useState } from "react";
-import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 // Define props interface
 interface IngredientSelectorProps {
@@ -125,13 +125,6 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
       return a.name.localeCompare(b.name);
     });
 
-  // const router = useRouter();
-  //
-  // const openRecipePage = (recipe: RecipeWithIngredients) => {
-  //   const recipeSlug = recipe.name.toLowerCase().replace(/ /g, '-');
-  //   router.push(`/recipes/${recipeSlug}`); // Fixed URL formatting
-  // };
-  //
   return (
     <div className="flex flex-row gap-8 w-full">
       <div className="flex flex-col w-full sm:w-1/2">
@@ -181,15 +174,12 @@ const IngredientSelector: React.FC<IngredientSelectorProps> = ({ ingredients, re
               >
                 <span>{recipe.name}</span>
                 <span>{getRecipeStatus(recipe as RecipeWithIngredients)}</span> {/* Cast recipe as RecipeWithIngredients */}
-                {/* <button */}
-                {/*   onClick={(e) => { */}
-                {/*     e.stopPropagation(); */}
-                {/*     openRecipePage(recipe as RecipeWithIngredients); // Cast recipe as RecipeWithIngredients */}
-                {/*   }} */}
-                {/*   className="ml-4 bg-blue-500 text-white px-2 py-1 rounded" */}
-                {/* > */}
-                {/*   View */}
-                {/* </button> */}
+                <Link
+                  href={`/recipes/${recipe.name.replace(/ /g, '-')}`} // Ensure proper slug formatting
+                  className="ml-4 bg-blue-500 text-white px-2 py-1 rounded inline-block"
+                >
+                  View
+                </Link>
               </li>
             ))}
         </ul>
