@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from "@/lib/prisma";
-import { Recipe } from '@prisma/client';
+import { Recipe, RecipeIngredient } from '@prisma/client';
 
 // Function to fetch all recipes with ingredients
 async function fetchRecipes(): Promise<Recipe[]> {
@@ -54,12 +54,17 @@ function decodeRecipeName(slug: string | undefined): string {
 }
 
 // Step 1: Generate static params for the dynamic routes
-export async function generateStaticParams() {
+export async function getStaticPaths() {
   const recipes = await fetchRecipes();
 
-  return recipes.map((recipe) => ({
-    slug: recipe.name.replace(/ /g, '-'),
+  const paths = recipes.map((recipe) => ({
+    params: { 'recipe-name': recipe.name.replace(/ /g, '-') },
   }));
+
+  return {
+    paths,
+    fallback: 'true', // or 'true' if you want to serve new recipes dynamically
+  };
 }
 
 // Step 3: Default page component
@@ -77,36 +82,33 @@ export default async function RecipePage({ params }: { params: { 'recipe-name': 
   const recipeIngredients = recipe?.recipeIngredients || [];
 
   return (
-    <section className="p-6">
-      <h1 className="title font-semibold text-3xl tracking-tight mb-4">{recipe.name}</h1>
-      <h3 className="text-lg font-semibold text-neutral-500 dark:text-neutral-400 mb-4">
-        {recipe.category}
-      </h3>
-      <div className="flex justify-between items-center mb-4 text-sm">
+    <section>
+      <h1 className="title font-semibold text-2xl tracking-tight">{recipe.name}</h1>
+      <div className="flex justify-between items-center mt-2 mb-8 text-sm">
         <p className="text-sm text-neutral-600 dark:text-neutral-400">{recipe.description}</p>
       </div>
 
-      <h2 className="text-xl font-semibold mt-6 mb-2">Ingredients:</h2>
+      <h2>Ingredients:</h2>
       <ul className="flex flex-col gap-y-2">
         {recipeIngredients.length > 0 ? (
           recipeIngredients.map((recipeIngredient) => (
-            <li key={recipeIngredient.id} className="text-sm">
+            <li key={recipeIngredient.id}>
               {recipeIngredient.amount} {recipeIngredient.ingredient?.unit} of{' '}
-              <span className="font-medium">{recipeIngredient.ingredient?.name || 'Ingredient not found'}</span>
+              {recipeIngredient.ingredient?.name || 'Ingredient not found'}
             </li>
           ))
         ) : (
-          <li className="text-sm text-neutral-600">No ingredients available.</li>
+          <li>No ingredients available.</li>
         )}
       </ul>
 
-      <h2 className="text-xl font-semibold mt-6 mb-2">Method:</h2>
-      <article className="prose mb-6">
+      <h2>Method:</h2>
+      <article className="prose">
         <p>{recipe.method}</p>
       </article>
 
-      <div className="mt-4">
-        <a href="/" className="text-neutral-400 hover:underline">Back to Home</a>
+      <div>
+        <a href="/">Back to Home</a>
       </div>
     </section>
   );
